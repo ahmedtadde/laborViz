@@ -6,10 +6,9 @@ shinyUI(fluidPage(
     sidebarLayout(
         sidebarPanel(
             p(class="text-small",
-              a(href="http://chrisrzhou.datanaut.io/", target="_blank", "by chrisrzhou"),
-              a(href="https://github.com/chrisrzhou/RShiny-LaborForceStatistics", target="_blank", icon("github")), " | ",
-              a(href="http://bl.ocks.org/chrisrzhou", target="_blank", icon("cubes")), " | ",
-              a(href="https://www.linkedin.com/in/chrisrzhou", target="_blank", icon("linkedin"))),
+              a(href="http://ahmedtadde.github.io/DataQuest", target="_blank", "by Ahmed Tadde"),
+              a(href="https://github.com/ahmedtadde/laborViz", target="_blank", icon("github")), " | ",
+              a(href="https://www.linkedin.com/in/ahmedtadde", target="_blank", icon("linkedin"))),
             hr(),
             p(class="text-small", "Labor Force Statistics visualizations.  All data is derived from the Current Population Survey results by the Bureau of Labor Statistics website: ",
               a(href="http://www.bls.gov/cps/", target="_blank", "http://www.bls.gov/cps/")),

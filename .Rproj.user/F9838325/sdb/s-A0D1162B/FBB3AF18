@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "source('data/functions.R')\nlibraries()\n# data <- get_labor_trend()\n# data <- get_labor_occupation()\n# data <- get_labor_education()\n\n\n\n\n\n\n\n",
+    "created" : 1494350313237.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "834074566",
+    "id" : "FBB3AF18",
+    "lastKnownWriteTime" : 1494364144,
+    "last_content_update" : 1494364144058,
+    "path" : "~/GITHUB/laborViz/data/playground.R",
+    "project_path" : "data/playground.R",
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 4,
+    "source_on_save" : true,
+    "source_window" : "",
+    "type" : "r_source"
+}
