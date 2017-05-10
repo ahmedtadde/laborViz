@@ -1,14 +1,9 @@
 #  R Shiny Labor Force Statistics
 
-<!--
 ## [Interactive Project Link][]
 
 This is a data analysis writeup  for the R [Shiny][] application - **Labor Force Statistics**, built to
 visualize labor statistics trends over a number of variables e.g. races and genders.
-
-The project is hosted on an AWS EC2 instance and all code and implementation is open-source and made available on
-[Github][github].
--->
 
 ------
 
@@ -56,9 +51,7 @@ We will delve into details on some interesting topics revolved around:
 -   Employment by Occupation ([cps-14][])
 -   Employment by Education ([cps-07][])
 
-The writeup will go into detailed analysis on some of the more interesting findings in the visualization sections.  
-An in-depth overview on data gathering, cleaning, and transformation of the original datasets will be outlined in 
-the [Data](#data) section.
+The writeup will go into detailed analysis on some of the more interesting findings in the visualization sections.
 
 At any time, feel free to experiment and draw your own conclusions with the interactive web application and refer to
 the `.R` files found on the [Github][] project site if you need details on code implementation.
@@ -295,198 +288,11 @@ and genders.
 
 <sub>(back to [contents](#contents))</sub>
 
-------
-
-## Data
->   This section provides details on the data source and processes that go towards scraping and munging the initial 
->   unorganized data into a consolidated R dataframe that is used in the Shiny app.  We will make references to the 
->   files on the [Github][github] project.
-
-All data is owned by the Current Population Survey ([CPS][]) made available by the Bureau of Labor Statistics.  I am 
-not affiliated with CPS, and this writeup and application is purely for practicing and sharing thoughts behind data 
-management and visualization.
-
-If you are not interested in the data background and processes, feel free to jump back to the visualization sections!
-
-### Data Source
-We will be using the following CPS datasets:
-
--   [cps-02][]: Time series of employment statistics by gender.
-    
-    ![image-cps-02][]
-
--   [cps-14][]: Most recent employment statistics by industry, age, gender, and race.
-
-    ![image-cps-14][]
-
--   [cps-07][]: Most recent employment statistics by education level, gender, and race.
-
-    ![image-cps-07][]
-
-Careful observation of the native data presentation suggests that the data tables involve some nesting.  For a 
-general workflow with R and Shiny visualizations, we would need to collapse the data into a *flat* dataframe structure.
-
-*Luckily*, it looks like the HTML tables themselves *follow some kind of pattern*.  The fact that some consistent 
-structure exists means that we can put our data munging skills to good use and transform the data into a better 
-structure for reusable code in future programs.
-
-But first, let's scrape the data before cleaning it up!
-
-### Data Scraping
-For the following section, we will walk through only one example of a data scraping/munging step abstracted in the 
-function `get_labor_trend` in the `/data/parser.R` file.  We will refer the readers to dig into the other functions 
-in detail at their own pace (most of them are similar in construction and abstraction).
-
-Open the `/data/parser.R` file and locate the `get_labor_trend` function.
-
->   In general, it is a good idea to build your data processing steps into multiple readable functions, so that they
->   can be called in future applications and programs.
-
-We will use the package `XML` for reading a HTML table into an R dataframe with the help of the function 
-`readHTMLTable`.
-
-We first define the `url` and `colnames` variables, where the `url` points to the CPS dataset URL, and `colnames` is 
-a convenient *named* vector to pass both the column names and column types to the dataframe we are creating with 
-`readHTMLTable`.
-
-```R
-url <- "http://www.bls.gov/cps/cpsaat02.htm"
-colnames <- c("year" = "integer",
-              "Total Population" = "FormattedInteger",
-              "Labor Force (Total)" = "FormattedInteger",
-              "% Labor Force (Total)" = "numeric",
-              "Labor Force (Employed)" = "FormattedInteger",
-              "% Labor Force (Employed)" = "numeric",
-              "Labor Force (Agriculture)" = "FormattedInteger",
-              "Labor Force (Non-agriculture)" = "FormattedInteger",
-              "Labor Force (Unemployed)" = "FormattedInteger",
-              "% Labor Force (Unemployed)" = "numeric",
-              "Non-Labor Force (Total)" = "FormattedInteger")
-              
-tables <- readHTMLTable(url, stringsAsFactors=FALSE, colClasses=unname(colnames))
-```
-
->   The use of a *named* vector for `colnames` allows us to easily extract two sets of information in one variable
->   i.e. `names(colnames)` extracts the names while `unname(colnames)` extracts the format types of the named vector
->   `colnames`.
-
-We pass in `stringsAsFactors=FALSE` to prevent conversion of string variables into factors, which will be quite a 
-pain to deal with for future processes, so let's just keep to primitive data types used in common programming 
-languages.
-
-By using the R-console and a couple of `print` statements, we learn that the variable `tables` is a list of HTML 
-tables that are found on the URL.
-
->   If you are interested, you can view the source page of the URL and check that there are indeed the same number 
->   of tables as the dimensions of our `tables`.
-
-Assuming that CPS keeps the format of their dataset/webpage in the same format, we can locate the data we want as 
-the second table in the URL.
-
-Let's assign this to the variable `df`.
-
-```R
-df <- tables[[2]]
-```
-
-Try printing the value of`df`.
-
-It looks a little unstructured, despite living in a dataframe.  Our goal now is to reshape the dataframe into a flat
-and long format, and this is best accomplished using the great `dplyr` library produced by Hadley Wickham, which 
-beautifully abstracts common reshaping workflows in R into a concise and readable syntax and implementation
-
->   The rest of the data section assumes elementary knowledge of `dplyr`.  We assume familiarity with methods such 
->   as: `%>%`, `mutate`, `select`, `arrange`, `rename`.  Please check out the official `dplyr` [official guide][dplyr] 
->   if you need additional resources.
-
-### Data Munging
-With `dplyr` and `reshape2`, it's time to hack and slash!
-
-Let's do some very basic cleaning steps to rename the columns and remove `NA` records (caused by nesting in the 
-original HTML table that produces whitespaces during the data import through `readHTMLTable`).
-
-```R
-colnames(df) <- names(colnames)  # rename columns
-df <- df %>% na.omit()  # remove NAs
-```
-
-The next step is to spend some time carefully observe the [cps-02] dataset and its structure and patterns:
-
-![image-cps-02][]
-
-And see if we can wrangle it to, perhaps, this preferred nice, flat and long structure:
-
-![image-long-wide-df][]
-
-Notice that the original data structure has column headers which can be pivoted into values under a new variable 
-`population`.  This will allow us to pivot and reshape the wide dataframe into a long dataframe if we pivot on the 
-variables `year` and `gender`.
-
-However, there is one pesky problem.
-
-The gender in the original data structure is located in a `subtotal` row.  We need to find a way to populate the 
-`"Men"` and `"Women"` gender values in all the data records, while potentially acknowledging that the dataset 
-records can vary (inclusion or exclusion of years for each gender).
-
-Our human skills of observation and pattern recognition intuitively suggests to us that this dataset contains twice 
-the amount of record for each gender.  By observation, we also note note that the initial data is sorted by `"Men"`,
-then by `"Women"`.
-
-This suggests that we can generate a dynamic `genders` vector with number of records dependent on the size of the 
-dataframe itself i.e. `genders=c("Men", "Men", ..., "Women", "Women")`.  R does this nicely for us through the use:
-
-```R
-genders <- rep(c("Men", "Women"), each=nrow(df)/2)  # create genders column to correct length
-```
-
-Print the variable `genders` to see for yourself, we indeed have a vector `genders=c("Men", "Men", ..., "Women", 
-"Women")` that we can integrate into our dataframe `df` using `dplyr`'s `mutate` method.
-
-```R
-df <- df %>% mutate(gender = genders)  # add gender column
-```
-
-The last step for the data munging process is to pivot the dataframe from wide to long format on the variables 
-`gender` and `year`.  This collapses all the column headers into data values under a new column variable, which we 
-will call `population`.
-
-Reassign the "melted" dataframe to itself again, and convert the `population` column into a `character` column 
-(BOOOO to factors unless we absolutely need it!), and finally do some cosmetic sorting with the `arrange` method.
-
-```R
-df <- melt(df, id=c("year", "gender")) %>%  # melt from wide to long
-        rename(population = variable) %>%
-        mutate(population = as.character(population)) %>%
-        arrange(gender, population)
-```
-
-Try printing `df` again:
-
-![image-long-wide-df][]
-
-Woohoo! This looks clean and long, just what we need for data post-processing and visualizations!
-
-Please feel free to go over the other functions and data manipulation steps.  The general idea is common across all 
-of them, and they are summarized below.
-
-### Data Recap
--   Abstract data gathering and processes into functions.
--   Define variables, and utilize the strengths of named vectors through the R functions `names` and `unname`.
--   Load the HTML tables into dataframes initially with     `readHTMLTable`.
--   Build vectors using `rep(vector, each)` by careful observation of the original data structure and desired final 
-    data structure.
--   Include all missing columns into the dataframe before the final pivot step to collapse the dataframe from wide 
-    to long, with the help of `reshape2`'s `melt` function.
-
-<sub>(back to [contents](#contents))</sub>
 
 ------
 
-## Resources
+## Data Resources
 -   CPS data: [cps-02][], [cps-14][], [cps-07][]
--   [Shiny][]
--   [dplyr][]
--   [Shiny EC2 Bootstrap Guide][]
 
 <sub>(back to [contents](#contents))</sub>
 
@@ -494,15 +300,14 @@ of them, and they are summarized below.
 
 
 <!-- external links -->
-[interactive project link]: http://shiny.vis.datanaut.io/LaborForceStatistics/
+[interactive project link]: https://ahmedtadde.shinyapps.io/laborviz/
 [Shiny]: http://shiny.rstudio.com/
-[github]: https://github.com/chrisrzhou/RShiny-LaborForceStatistics
+[github]: https://github.com/ahmedtadde/laborViz
 [CPS]: http://www.bls.gov/cps/
 [cps-02]: http://www.bls.gov/cps/cpsaat02.htm
 [cps-14]: http://www.bls.gov/cps/cpsaat14.htm
 [cps-07]: http://www.bls.gov/cps/cpsaat07.htm
 [dplyr]: http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html
-[Shiny EC2 Bootstrap Guide]: https://github.com/chrisrzhou/RShiny-EC2Bootstrap
 [usda farm decline]: http://www.usda.gov/factbook/chapter3.htm
 [recessions]: http://en.wikipedia.org/wiki/List_of_recessions_in_the_United_States
 [Early 1980s Recession]: http://en.wikipedia.org/wiki/Early_1980s_recession
@@ -510,23 +315,29 @@ of them, and they are summarized below.
 [The Great Recession]: http://en.wikipedia.org/wiki/Great_Recession
 
 <!-- images link -->
-[image-cps-02]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/cps-02.png
-[image-cps-14]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/cps-14.png
-[image-cps-07]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/cps-07.png
-[image-long-wide-df]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/long-wide-df.png
-[image-trend-all]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/trend-all.png
-[image-trend-population]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/trend-population.png
-[image-trend-non-labor-force]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/trend-non-labor-force.png
-[image-trend-employed-rate]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/trend-employed-rate.png
-[image-trend-unemployed-rate]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/trend-unemployed-rate.png
-[image-trend-agricultural-labor-force]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/trend-agricultural-labor-force.png
-[image-occupation-all]:https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/occupation-all.png
-[image-occupation-male-dominated]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/occupation-male-dominated.png
-[image-occupation-male-dominated-age-group-2]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/occupation-male-dominated-age-group-2.png
-[image-occupation-education-health]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/occupation-education-health.png
-[image-occupation-public-administration]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/occupation-public-administration.png
-[image-occupation-sales-business-finance]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/occupation-sales-business-finance.png
-[image-education-labor-force-by-gender]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/education-labor-force-by-gender.png
-[image-education-unemployment-by-gender]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/education-unemployment-by-gender.png
-[image-education-labor-force-by-race]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/education-labor-force-by-race.png
-[image-education-unemployment-by-race]: https://s3-us-west-1.amazonaws.com/chrisrzhou/github/RShiny-LaborForceStatistics/education-unemployment-by-race.png
+[image-cps-02]: ./www/image-cps-02.png
+[image-cps-14]: ./www/image-cps-14.png
+[image-cps-07]: ./www/image-cps-07.png
+[image-long-wide-df]: ./www/image-long-wide-df.png
+
+
+[image-trend-all]: ./www/image-trend-all.png
+[image-trend-population]: ./www/image-trend-population.png
+[image-trend-non-labor-force]: ./www/image-trend-non-labor-force.png
+[image-trend-employed-rate]: ./www/image-trend-employed-rate.png
+[image-trend-unemployed-rate]: ./www/image-trend-unemployed-rate.png
+[image-trend-agricultural-labor-force]: ./www/image-trend-agricultural-labor-force.png
+
+
+[image-occupation-all]: ./www/image-occupation-all.png
+[image-occupation-male-dominated]: ./www/image-occupation-male-dominated.png
+[image-occupation-male-dominated-age-group-2]: ./www/image-occupation-male-dominated-age-group-2.png
+[image-occupation-education-health]: ./www/image-occupation-education-health.png
+[image-occupation-public-administration]:./www/image-occupation-public-administration.png
+[image-occupation-sales-business-finance]: ./www/image-occupation-sales-business-finance.png
+
+
+[image-education-labor-force-by-gender]: ./www/image-education-labor-force-by-gender.png
+[image-education-unemployment-by-gender]:./www/image-education-unemployment-by-gender.png
+[image-education-labor-force-by-race]:./www/image-education-labor-force-by-race.png
+[image-education-unemployment-by-race]: ./www/image-education-unemployment-by-race.png

@@ -11,6 +11,8 @@ libraries <- function(){
   library(shiny)
   library(ggplot2)
   library(scales)
+  library(DT)
+  library(markdown)
   options(warn=-1)
 }
 
@@ -47,7 +49,7 @@ get_labor_trend <- function() {
     table <- data.table(table[[1]])
     setnames(table, colnames)
     
-    table <- rbindlist(list(table[5:42][,gender:= "Men"],table[48:88][,gender:="Women"]), use.names = TRUE)
+    table <- rbindlist(list(table[5:45][,gender:= "Men"],table[48:88][,gender:="Women"]), use.names = TRUE)
     
     table <- melt.data.table(
       table,

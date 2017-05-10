@@ -2,7 +2,7 @@
 # Load libraries and scripts
 # =========================================================================
 source("data/functions.R")
-libraries
+libraries()
 
 # =========================================================================
 # GET parsed data from parser.R script into dataframes
@@ -19,7 +19,7 @@ dataframes <- list(
 # =========================================================================
 choices <- list(
     category = c("Gender", "Race"),
-    trend_year = unique(dataframes$trend$year),
+    trend_year = as.numeric(unique(dataframes$trend$year)),
     trend_population = unique(dataframes$trend$population),
     occupation_age_group = unique(dataframes$occupation$age_group),
     occupation_race = unique(dataframes$occupation$race),

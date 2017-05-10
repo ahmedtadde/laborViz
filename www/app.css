@@ -2,24 +2,31 @@ h1, h2, h3 {
     font-weight: 800;
 }
 
-h1, h2 {
+h1 {
+    font-size: 32px;
     color: steelblue;
+    font-family: 'Architects Daughter', cursive;
 }
 h2 {
-    font-size: 1.4em;
+    font-size: 28px;
+    color: #999999;
+    font-family: 'Architects Daughter', cursive;
 }
 
 h3 {
-    font-size: 1.2em;
+    font-size: 24px;
     color: #999999;
+    font-family: 'Architects Daughter', cursive;
 }
 
 label span, .selectize-dropdown, .selectize-input {
-    font-size: 10px;
+    font-size: 15px;
+    font-family: 'Ubuntu', sans-serif;
 }
 
 label.control-label {
-    font-size: 1.2em;
+    font-size: 15;
+    font-family: 'Ubuntu', sans-serif;
     font-weight: 800;
     color: #999999;
 }
@@ -29,10 +36,17 @@ tfoot {
 }
 
 table {
-    font-size: 11px;
+    font-size: 15px;
+    font-family: 'Ubuntu', sans-serif;
 }
 
 .text-small {
+    font-family: 'Ubuntu', sans-serif;
+    font-size: 18px;
+}
+
+.text-small-italic {
+    font-family: 'Ubuntu', sans-serif;
     font-size: 12px;
     font-style: italic;
 }
